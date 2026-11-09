@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
-    "test": "tsx --test tests/app.test.ts tests/firebaseAuth.test.ts tests/pipeline.test.ts tests/providers.test.ts",
+    "test": "tsx --test tests/app.test.ts tests/firebaseAuth.test.ts tests/pipeline.test.ts tests/providers.test.ts tests/vercelFunctions.test.ts",
     "benchmark": "tsx scripts/run-benchmark.ts",
     "start": "vite-node server.ts",
     "test:rules:unit": "tsx --test tests/firestoreRules.test.ts",

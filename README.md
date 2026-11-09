@@ -66,7 +66,9 @@ The benchmark measures approximate prompt-size change, provider usage, latency, 
 
 ## Deployment
 
-A Dockerfile and Render blueprint are included. Set provider keys as secret environment variables in the deployment host. Configure Firebase Authentication authorized domains for the deployed hostname and deploy the Firestore Rules. The health check is `GET /api/healthz`.
+A Dockerfile and Render blueprint are included. For Vercel, the Vite frontend is built from `dist/`, while `api/optimize.ts` and `api/healthz.ts` provide the serverless API routes. Add `GROQ_API_KEY` and, optionally, `GROQ_API_KEY_2` and `GEMINI_API_KEY` under the Vercel project's Environment Variables, then redeploy. Never expose provider keys through `VITE_` variables.
+
+For every deployment host, configure Firebase Authentication authorized domains for the deployed hostname and deploy the Firestore Rules. The health check is `GET /api/healthz`.
 
 Before a public launch, configure a shared rate-limit store for multi-instance deployments, set provider budgets/alerts, and review the prompts sent to third-party providers against your data policy.
 
