@@ -45,14 +45,17 @@ export function ApiReference() {
                 <span className="px-3 py-1 bg-green-50 text-green-600 rounded-lg text-xs font-bold uppercase tracking-widest">POST</span>
                 <code className="text-sm font-mono text-gray-900">/api/optimize</code>
               </div>
-              <p className="text-gray-600">Compresses a prompt based on the specified mode.</p>
+              <p className="text-gray-600">Requires a Firebase ID token. Limits prompts to 10,000 characters and rate-limits each user. Returns provider-reported usage, latency, and an estimated API cost.</p>
               <div className="bg-gray-900 rounded-2xl p-6 overflow-hidden">
                 <pre className="text-indigo-400 text-sm font-mono leading-relaxed">
-{`{
-  "prompt": "Your long prompt here...",
-  "mode": "quality",
-  "model": "llama-3.3-70b-versatile"
-}`}
+{`POST /api/optimize
+Authorization: Bearer <Firebase ID token>
+Content-Type: application/json
+
+{
+  "prompt": "Your prompt here...",
+  "mode": "quality"
+}` }
                 </pre>
               </div>
             </div>

@@ -20,9 +20,11 @@
 //   - originalTokens: number (optional) - Tokens in original prompt
 //   - optimizedTokens: number (optional) - Tokens in optimized prompt
 //   - tokensSaved: number (optional) - Tokens saved
-//   - optimizedCost: number (optional) - Cost of optimized prompt
-//   - costSaved: number (optional) - Estimated cost saved
-//   - mode: string (optional, enum: ['cheap', 'quality']) - Optimization mode
+//   - provider/model: string - Provider used for this optimization
+//   - apiInputTokens/apiOutputTokens: number (optional) - Provider-reported usage
+//   - estimatedApiCostUsd: number (optional) - Estimated cost at published rates
+//   - latencyMs: number - End-to-end provider latency
+//   - mode: string (required, enum: ['cheap', 'quality', 'extreme']) - Optimization mode
 //   - model: string (optional) - Model used
 //   - timestamp: timestamp (required) - When the optimization occurred
 //
@@ -68,10 +70,31 @@ service cloud.firestore {
     }
 
     function isValidUsageLog(data) {
-      return data.keys().hasAll(['uid', 'originalPrompt', 'optimizedPrompt', 'timestamp']) &&
+      return data.keys().hasAll([
+               'uid', 'originalPrompt', 'optimizedPrompt', 'originalTokens',
+               'optimizedTokens', 'tokensSaved', 'mode', 'provider', 'model',
+               'latencyMs', 'timestamp'
+             ]) &&
+             data.keys().hasOnly([
+               'uid', 'originalPrompt', 'optimizedPrompt', 'originalTokens',
+               'optimizedTokens', 'tokensSaved', 'mode', 'provider', 'model',
+               'latencyMs', 'apiInputTokens', 'apiOutputTokens',
+               'estimatedApiCostUsd', 'timestamp'
+             ]) &&
              data.uid == request.auth.uid &&
-             data.originalPrompt is string && data.originalPrompt.size() < 10000 &&
-             data.optimizedPrompt is string && data.optimizedPrompt.size() < 10000;
+             data.originalPrompt is string && data.originalPrompt.size() > 0 && data.originalPrompt.size() <= 10000 &&
+             data.optimizedPrompt is string && data.optimizedPrompt.size() > 0 && data.optimizedPrompt.size() <= 10000 &&
+             data.originalTokens is int && data.originalTokens >= 0 &&
+             data.optimizedTokens is int && data.optimizedTokens >= 0 &&
+             data.tokensSaved is int &&
+             data.mode in ['cheap', 'quality', 'extreme'] &&
+             data.provider in ['groq', 'gemini', 'local cache'] &&
+             data.model is string && data.model.size() > 0 && data.model.size() <= 100 &&
+             data.latencyMs is int && data.latencyMs >= 0 && data.latencyMs <= 120000 &&
+             data.timestamp is timestamp &&
+             (!data.keys().hasAny(['apiInputTokens']) || (data.apiInputTokens is int && data.apiInputTokens >= 0)) &&
+             (!data.keys().hasAny(['apiOutputTokens']) || (data.apiOutputTokens is int && data.apiOutputTokens >= 0)) &&
+             (!data.keys().hasAny(['estimatedApiCostUsd']) || (data.estimatedApiCostUsd is number && data.estimatedApiCostUsd >= 0));
     }
 
     function isValidAnalytics(data) {

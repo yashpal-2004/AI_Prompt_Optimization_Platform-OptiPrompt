@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../../lib/AuthContext';
 import { useCurrency, CURRENCIES, CurrencyKey } from '../../lib/CurrencyContext';
-import { useKeys } from '../../lib/KeyContext';
-import { User, Mail, Shield, Globe, Save, ArrowLeft, Trash2, CreditCard, Bell, Zap, Key, RefreshCw, CheckCircle2, XCircle, AlertTriangle, LogOut } from 'lucide-react';
+import { User, Mail, Shield, Globe, ArrowLeft, Trash2, Bell, CheckCircle2, AlertTriangle, LogOut } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -11,81 +10,20 @@ import { db } from '../../firebase';
 import { collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
 
 export function Settings() {
-  const { user, userProfile, logout } = useAuth();
+  const { user, logout } = useAuth();
   const { currency, setCurrency } = useCurrency();
-  const { keys, updateKeyStatus } = useKeys();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [verifying, setVerifying] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [savePromptHistory, setSavePromptHistory] = useState(false);
 
-  const handleVerifyKeys = async () => {
-    if (keys.length === 0) return;
-    setVerifying(true);
-    let activeCount = 0;
-    let quotaCount = 0;
-    let invalidCount = 0;
+  useEffect(() => {
+    setSavePromptHistory(user ? localStorage.getItem(`optiprompt_history_${user.uid}`) === 'true' : false);
+  }, [user?.uid]);
 
-    for (const keyInfo of keys) {
-      if (!keyInfo.key) continue;
-
-      try {
-        const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${keyInfo.key}`
-          },
-          body: JSON.stringify({
-            model: "llama-3.3-70b-versatile",
-            messages: [{ role: "user", content: "Hi" }],
-            max_tokens: 5
-          })
-        });
-
-        if (res.ok) {
-          updateKeyStatus(keyInfo.id, 'active');
-          activeCount++;
-        } else {
-          const errorBody = await res.text();
-          const errorMsg = errorBody.toLowerCase();
-          const httpStatus = res.status;
-
-          if (httpStatus === 429 || errorMsg.includes('quota') || errorMsg.includes('rate')) {
-            updateKeyStatus(keyInfo.id, 'quota_exceeded', errorBody);
-            quotaCount++;
-          } else if (httpStatus === 400 || httpStatus === 401 || httpStatus === 403 || errorMsg.includes('api key') || errorMsg.includes('invalid')) {
-            updateKeyStatus(keyInfo.id, 'invalid', errorBody);
-            invalidCount++;
-          } else {
-            updateKeyStatus(keyInfo.id, 'active');
-            activeCount++;
-          }
-        }
-      } catch {
-        // silent fail
-      }
-    }
-
-    const parts = [];
-    if (activeCount > 0) parts.push(`${activeCount} active`);
-    if (quotaCount > 0) parts.push(`${quotaCount} quota exceeded`);
-    if (invalidCount > 0) parts.push(`${invalidCount} invalid`);
-    toast.success(`Verified nodes: ${parts.join(', ') || 'all systems normal'}`);
-    setVerifying(false);
-  };
-
-  const handleSaveSettings = async () => {
-    setLoading(true);
-    try {
-      await new Promise(r => setTimeout(r, 800));
-      toast.success('Neural configuration synchronized');
-    } catch (error) {
-       console.error(error);
-      toast.error('Failed to sync settings');
-    } finally {
-      setLoading(false);
-    }
+  const updateHistoryPreference = (enabled: boolean) => {
+    setSavePromptHistory(enabled);
+    if (user) localStorage.setItem(`optiprompt_history_${user.uid}`, String(enabled));
   };
 
   const handleDeleteEntity = async () => {
@@ -220,9 +158,9 @@ export function Settings() {
           </div>
         </section>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <div className="grid grid-cols-1 gap-10">
           {/* Main Config Column */}
-          <div className="lg:col-span-4 space-y-10">
+          <div className="space-y-10">
             <section className="space-y-6">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 glass rounded-xl flex items-center justify-center border-slate-200">
@@ -267,6 +205,21 @@ export function Settings() {
                 </div>
               </div>
 
+              <div className="glass p-6 rounded-[2rem] border-slate-200 shadow-sm">
+                <label className="flex items-start gap-4 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={savePromptHistory}
+                    onChange={(event) => updateHistoryPreference(event.target.checked)}
+                    className="mt-1 h-4 w-4 accent-indigo-600"
+                  />
+                  <span>
+                    <span className="block text-sm font-bold text-slate-900">Save prompt history to my account</span>
+                    <span className="block text-xs text-slate-500 mt-1 leading-relaxed">When enabled, original and optimized prompts are saved in your private Firestore history. Turn this off to keep future prompts out of cloud history.</span>
+                  </span>
+                </label>
+              </div>
+
               <div className="bg-rose-50/20 glass p-8 rounded-[2rem] border-rose-100/50 shadow-sm relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-rose-50 rounded-full blur-[60px] -mr-16 -mt-16 opacity-40 group-hover:scale-125 transition-transform duration-700" />
                 <div className="relative z-10">
@@ -284,136 +237,8 @@ export function Settings() {
             </section>
           </div>
 
-          {/* Compute Nodes Column */}
-          <div className="lg:col-span-8 space-y-8">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 glass rounded-xl flex items-center justify-center border-slate-100">
-                  <Zap className="w-5 h-5 text-amber-500" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-slate-900 font-display">Compute Nodes</h3>
-                  <p className="text-[11px] font-medium text-slate-400 uppercase tracking-widest">Global Node Synchronization</p>
-                </div>
-              </div>
-              <button 
-                onClick={handleVerifyKeys}
-                disabled={verifying}
-                className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 text-white text-[10px] font-black rounded-lg hover:bg-slate-800 transition-all active:scale-95 shadow-lg shadow-slate-200 uppercase tracking-[2px] disabled:opacity-50"
-              >
-                {verifying ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                {verifying ? 'Syncing...' : 'Verify System'}
-              </button>
-            </div>
-
-            <div className="space-y-6">
-              {keys.map((k) => (
-                <div key={k.id} className="glass p-8 rounded-[2.5rem] border-slate-200 group hover:border-indigo-100 transition-all shadow-md relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-48 h-48 bg-slate-50 rounded-full blur-[80px] -mr-24 -mt-24 pointer-events-none group-hover:bg-indigo-50/50 transition-colors" />
-                  
-                  <div className="relative z-10">
-                    <div className="flex items-center justify-between mb-8">
-                      <div className="flex items-center gap-5">
-                        <div className={cn(
-                          "w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner relative transition-transform group-hover:scale-105 duration-500",
-                          k.status === 'active' ? "bg-emerald-50 border border-emerald-100" : 
-                          k.status === 'quota_exceeded' ? "bg-amber-50 border border-amber-100" :
-                          k.status === 'invalid' ? "bg-rose-50 border border-rose-100" : "bg-slate-50 border border-slate-100"
-                        )}>
-                          {k.status === 'active' ? <CheckCircle2 className="w-7 h-7 text-emerald-600" /> : 
-                           k.status === 'quota_exceeded' ? <AlertTriangle className="w-7 h-7 text-amber-600" /> :
-                           k.status === 'invalid' ? <XCircle className="w-7 h-7 text-rose-600" /> : 
-                           <Key className="w-7 h-7 text-slate-400" />}
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[3px] leading-none mb-1.5">{k.id}</p>
-                          <h4 className="text-xl font-bold text-slate-900 font-display">{k.name}</h4>
-                        </div>
-                      </div>
-                      <span className={cn(
-                        "px-4 py-1.5 text-[9px] font-black rounded-xl uppercase tracking-widest border shadow-sm",
-                        k.status === 'active' ? "bg-emerald-50 text-emerald-700 border-emerald-100" : 
-                        k.status === 'quota_exceeded' ? "bg-amber-50 text-amber-700 border-amber-100" :
-                        k.status === 'invalid' ? "bg-rose-50 text-rose-700 border-rose-100" : "bg-slate-50 text-slate-500 border-slate-100"
-                      )}>
-                        {k.status.replace('_', ' ')}
-                      </span>
-                    </div>
-
-                    <div className="relative group/input">
-                      <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                        <Shield className="w-4 h-4 text-slate-300 group-hover/input:text-indigo-400 transition-colors" />
-                      </div>
-                      <input 
-                        type="password"
-                        value={k.key}
-                        onChange={(e) => updateKey(k.id, e.target.value)}
-                        placeholder={`Provide ${k.name} neural access code...`}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-[1.25rem] pl-14 pr-32 py-5 text-sm font-mono focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all shadow-inner"
-                      />
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                        <div className="h-4 w-px bg-slate-200 mx-2" />
-                        <button 
-                           onClick={() => {
-                             navigator.clipboard.writeText(k.key);
-                             toast.success('Key hashed and copied to clipboard');
-                           }}
-                           className="p-2.5 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-indigo-600 transition-all flex items-center gap-2"
-                        >
-                           <CreditCard className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                    
-                    {k.error && (
-                      <motion.div 
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="mt-4 p-4 bg-rose-50 rounded-xl border border-rose-100 flex items-start gap-3"
-                      >
-                         <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-                         <p className="text-[10px] text-rose-600 font-bold uppercase tracking-tight leading-relaxed">
-                          Synchronicity Error: {k.error.substring(0, 120)}...
-                         </p>
-                      </motion.div>
-                    )}
-                    
-                    <div className="mt-8 flex items-center justify-between pt-6 border-t border-slate-100">
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-[2px]">
-                         Health Signal: <span className="text-slate-700 ml-1">{k.lastUsed ? new Date(k.lastUsed).toLocaleTimeString() : 'Awaiting Connection'}</span>
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <div className={cn("w-1.5 h-1.5 rounded-full", k.status === 'active' ? "bg-emerald-500 pulse" : "bg-slate-300")} />
-                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Signal Locked</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
 
-        <div className="pt-12 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-8">
-           <div className="flex items-center gap-4 group">
-              <div className="w-12 h-12 glass rounded-2xl flex items-center justify-center border-slate-200 group-hover:scale-110 transition-transform">
-                 <RefreshCw className="w-6 h-6 text-indigo-400" />
-              </div>
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[3px]">Global State</p>
-                <p className="text-xs font-bold text-slate-700 mt-1 uppercase">All configurations synchronized to neural cloud</p>
-              </div>
-           </div>
-           
-           <button 
-            onClick={handleSaveSettings}
-            disabled={loading}
-            className="w-full md:w-auto px-16 py-6 bg-slate-900 text-white font-black text-xs rounded-3xl hover:bg-slate-800 transition-all active:scale-95 shadow-2xl shadow-indigo-200/50 flex items-center justify-center gap-4 uppercase tracking-[3px]"
-          >
-            {loading ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-            {loading ? 'Committing...' : 'Commit Configuration'}
-          </button>
-        </div>
       </main>
     </div>
   );

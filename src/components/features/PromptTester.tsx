@@ -4,7 +4,7 @@ import { Zap, Sparkles, Loader2, Info, Copy, Check, RotateCcw, AlertCircle, Acti
 import { cn } from '../../lib/utils';
 import { toast } from "sonner";
 import { useCurrency } from '../../lib/CurrencyContext';
-import { useKeys, KeyStatus } from '../../lib/KeyContext';
+import { auth } from '../../firebase';
 import { runPreLLMPipeline, setCached, PipelineResult } from '../../lib/OptimizationPipeline';
 
 interface OptimizationResult {
@@ -14,9 +14,26 @@ interface OptimizationResult {
   optimizedTokens: number;
   tokensSaved: number;
   costSaved: number;
-  optimizedCost: number;
+  optimizedCost: number | null;
+  apiInputTokens: number | null;
+  apiOutputTokens: number | null;
+  latencyMs: number;
+  provider: string;
   mode: 'cheap' | 'quality' | 'extreme';
   model: string;
+}
+
+interface OptimizerResponse {
+  optimizedPrompt: string;
+  provider: 'groq' | 'gemini';
+  model: string;
+  usage: {
+    inputTokens: number | null;
+    outputTokens: number | null;
+    totalTokens: number | null;
+    estimatedCostUsd: number | null;
+  };
+  latencyMs: number;
 }
 
 function Tooltip({ children, content }: { children: React.ReactNode; content: string }) {
@@ -43,15 +60,10 @@ function Tooltip({ children, content }: { children: React.ReactNode; content: st
   );
 }
 
-const MODELS = [
-  {
-    id: 'llama-3.3-70b-versatile',
-    label: 'Llama 3.3 70B (Groq)',
-    description: 'High-speed inference engine powered by Groq.',
-  },
-];
-
-const COST_PER_TOKEN = 0.0000001; // effectively free
+function estimatePromptTokens(text: string): number {
+  // Approximate only: character-based estimates vary by language and tokenizer.
+  return Math.ceil(text.length / 4);
+}
 
 function NeuralOptimizerLoader() {
   const steps = [
@@ -145,15 +157,12 @@ function NeuralOptimizerLoader() {
   );
 }
 
-const optimizationCache = new Map<string, string>();
-
 export function PromptTester({
   onOptimize
 }: {
   onOptimize?: (result: OptimizationResult) => void;
 }) {
   const { formatCost } = useCurrency();
-  const { keys, getNextKey, updateKeyStatus } = useKeys();
   const [prompt, setPrompt] = useState('');
   const [mode, setMode] = useState<'cheap' | 'quality' | 'extreme'>('quality');
   const [loading, setLoading] = useState(false);
@@ -181,34 +190,24 @@ export function PromptTester({
     }, 10);
   };
 
-  const llmOptimize = async (text: string, modelId: string, retryCount = 0, keyRetryCount = 0, force = false): Promise<string | null> => {
-    const cacheKey = `${modelId}-${mode}-${text}`;
-    if (optimizationCache.has(cacheKey) && !force) return optimizationCache.get(cacheKey)!;
-    const apiKey = getNextKey(keyRetryCount);
-    const keyInfo = keys.find(k => k.key === apiKey);
-    try {
-      let instruction = "";
-      if (mode === 'extreme') instruction = "REWRITE CHALLENGE: Re-engineer this prompt into a highly dense, telegraphic format. Remove all articles (a, an, the), auxiliary verbs, and social padding. Use industry-standard abbreviations and compact logical operators. The goal is the absolute minimum token footprint without losing instruction integrity. Return ONLY the resulting dense prompt.";
-      else if (mode === 'cheap') instruction = "Minimize this prompt's token footprint. Be extremely brief, use direct phrasing, and remove all filler words. Priority: Cost-efficiency. Return ONLY the rewritten prompt.";
-      else instruction = "Refine this prompt for maximum clarity, structure, and professional tone. Fix grammar/spelling while preserving all technical details and intent. Return ONLY the refined prompt.";
-      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
-        body: JSON.stringify({ model: modelId, messages: [{ role: "system", content: instruction }, { role: "user", content: `Prompt: ${text}` }], max_tokens: 4096 })
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
-      const data = await res.json();
-      const result = data.choices?.[0]?.message?.content || text;
-      optimizationCache.set(cacheKey, result);
-      if (keyInfo) updateKeyStatus(keyInfo.id, 'active');
-      return result;
-    } catch (e: any) {
-      const isQuotaError = e?.message?.includes('429') || e?.message?.toLowerCase().includes('quota') || e?.message?.toLowerCase().includes('rate');
-      const isAuthError = e?.message?.includes('401') || e?.message?.includes('403') || e?.message?.toLowerCase().includes('api key');
-      if (keyInfo) updateKeyStatus(keyInfo.id, isQuotaError ? 'quota_exceeded' : (isAuthError ? 'invalid' : keyInfo.status), e?.message);
-      if ((isQuotaError || isAuthError) && keyRetryCount < keys.length - 1) return llmOptimize(text, modelId, retryCount, keyRetryCount + 1, force);
-      return null;
+  const llmOptimize = async (text: string): Promise<OptimizerResponse> => {
+    const user = auth.currentUser;
+    if (!user) throw new Error('Sign in to optimize a prompt.');
+    const token = await user.getIdToken();
+    const res = await fetch('/api/optimize', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ prompt: text, mode }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data?.error || `Optimizer request failed (${res.status})`);
+    if (typeof data?.optimizedPrompt !== 'string' || !data.optimizedPrompt.trim()) {
+      throw new Error('Optimizer returned an empty result.');
     }
+    return data as OptimizerResponse;
   };
 
   const handleOptimize = async (force = false) => {
@@ -220,37 +219,52 @@ export function PromptTester({
       const pipeline = runPreLLMPipeline(prompt, mode, force);
       setPipelineResult(pipeline);
       const pipelinePrompt = pipeline.finalPrompt;
+      const originalTokens = estimatePromptTokens(prompt);
+
       if (pipeline.cacheHit) {
-        const originalTokens = Math.ceil(prompt.length / 4);
-        const optimizedTokens = Math.ceil(pipelinePrompt.length / 4);
-        const tokensSaved = originalTokens - optimizedTokens;
-        const cachedResult: OptimizationResult = { originalPrompt: prompt, optimizedPrompt: pipelinePrompt, originalTokens, optimizedTokens, tokensSaved, costSaved: tokensSaved * COST_PER_TOKEN, optimizedCost: optimizedTokens * COST_PER_TOKEN, mode, model: MODELS[0].label };
-        setResults([cachedResult]);
-        if (onOptimize) onOptimize(cachedResult);
+        const result: OptimizationResult = {
+          originalPrompt: prompt,
+          optimizedPrompt: pipelinePrompt,
+          originalTokens,
+          optimizedTokens: estimatePromptTokens(pipelinePrompt),
+          tokensSaved: originalTokens - estimatePromptTokens(pipelinePrompt),
+          costSaved: 0,
+          optimizedCost: null,
+          apiInputTokens: null,
+          apiOutputTokens: null,
+          latencyMs: 0,
+          provider: 'local cache',
+          mode,
+          model: 'Cached result',
+        };
+        setResults([result]);
+        onOptimize?.(result);
         setForceReoptimize(true);
-        setLoading(false);
         return;
       }
-      const optimizationPromises = MODELS.map(async (modelConfig) => {
-        const optimized = await llmOptimize(pipelinePrompt, modelConfig.id, 0, 0, force);
-        if (!optimized) return null;
-        setCached(mode, prompt, optimized);
-        const originalTokens = Math.ceil(prompt.length / 3.7);
-        const optimizedTokens = Math.ceil(optimized.length / 3.7);
-        let finalOptimized = optimized;
-        let finalOptimizedTokens = optimizedTokens;
-        if (mode !== 'quality' && optimizedTokens > originalTokens) { finalOptimized = prompt; finalOptimizedTokens = originalTokens; }
-        const tokensSaved = Math.max(0, originalTokens - finalOptimizedTokens);
-        return { originalPrompt: prompt, optimizedPrompt: finalOptimized, originalTokens, optimizedTokens: finalOptimizedTokens, tokensSaved, costSaved: tokensSaved * COST_PER_TOKEN, optimizedCost: finalOptimizedTokens * COST_PER_TOKEN, mode, model: modelConfig.label } as OptimizationResult;
-      });
-      const allResults = await Promise.all(optimizationPromises);
-      const validResults = allResults.filter((r): r is OptimizationResult => r !== null);
-      if (validResults.length === 0) { setResults([]); return; }
-      const sortedResults = validResults.sort((a, b) => b.tokensSaved - a.tokensSaved);
-      setResults(sortedResults);
-      if (onOptimize) onOptimize(sortedResults[0]);
-    } catch (error: any) {
-      toast.error("Optimizer stalled", { description: error?.message || "Internal engine error." });
+
+      const response = await llmOptimize(pipelinePrompt);
+      setCached(mode, prompt, response.optimizedPrompt);
+      const optimizedTokens = estimatePromptTokens(response.optimizedPrompt);
+      const result: OptimizationResult = {
+        originalPrompt: prompt,
+        optimizedPrompt: response.optimizedPrompt,
+        originalTokens,
+        optimizedTokens,
+        tokensSaved: originalTokens - optimizedTokens,
+        costSaved: 0,
+        optimizedCost: response.usage.estimatedCostUsd,
+        apiInputTokens: response.usage.inputTokens,
+        apiOutputTokens: response.usage.outputTokens,
+        latencyMs: response.latencyMs,
+        provider: response.provider,
+        mode,
+        model: response.model,
+      };
+      setResults([result]);
+      onOptimize?.(result);
+    } catch (error) {
+      toast.error('Optimizer stalled', { description: error instanceof Error ? error.message : 'Unable to complete optimization.' });
     } finally {
       setLoading(false);
     }
@@ -305,9 +319,9 @@ export function PromptTester({
                   key={ex}
                   onClick={() => {
                     const examples = [
-                      "Write a very detailed and engaging blog post about quantum computing that explains everything from basic to advanced topics.",
-                      "Review this code and make it faster, cleaner, and production ready.",
-                      "Brainstorm some creative marketing ideas for a SaaS product that can work for any industry and any audience."
+                      "Create a launch campaign for a project management SaaS aimed at small marketing teams. Write a landing-page headline, a short value proposition, three benefit bullets, and a clear free-trial call to action. Keep the tone confident and friendly, avoid unsupported claims, and explain how the product helps teams coordinate work and meet deadlines. Limit the copy to 180 words.",
+                      "Review the following TypeScript function that fetches paginated user records from an API. Find correctness, performance, and error-handling issues; then provide a production-ready revision with explicit types, bounded retries for transient failures, and cancellation support. Preserve the existing function signature where practical, explain any behavior changes, and include unit tests for an empty result, a failed request, and multiple pages. Do not add dependencies.\n\n[paste code here]",
+                      "Write a technical blog post for junior developers explaining how HTTP caching works in a web application. Cover Cache-Control, ETag, browser versus CDN caching, and one practical request/response example. Use clear section headings, define jargon on first use, distinguish fresh from stale responses, and include a short checklist of common mistakes. Keep it between 700 and 900 words and avoid inventing benchmark results."
                     ];
                     setPrompt(examples[i]);
                   }}
@@ -357,13 +371,13 @@ export function PromptTester({
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-red text-white flex items-center justify-center font-black text-[10px]"> {res.model.substring(0, 1)} </div>
                         <div>
-                          <span className="text-xs font-black text-black block leading-tight uppercase tracking-widest">{res.model}</span>
+                          <span className="text-xs font-black text-black block leading-tight uppercase tracking-widest">{res.provider} · {res.model}</span>
                           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
-                            <span className="text-[9px] font-bold text-black/40 whitespace-nowrap">{res.originalTokens} → {res.optimizedTokens} tokens</span>
+                            <span className="text-[9px] font-bold text-black/40 whitespace-nowrap">~{res.originalTokens} → ~{res.optimizedTokens} tokens</span>
                             <div className="w-1 h-1 bg-black/10 rounded-full" />
                             <span className={cn("text-[9px] font-bold whitespace-nowrap", res.tokensSaved >= 0 ? "text-red" : "text-amber-600")}> {res.tokensSaved >= 0 ? `-${res.tokensSaved}` : `+${Math.abs(res.tokensSaved)}`} {res.tokensSaved >= 0 ? 'saved' : 'added'} </span>
                             <div className="w-1 h-1 bg-black/10 rounded-full" />
-                            <span className="text-[9px] font-bold text-black/40 whitespace-nowrap">{formatCost(res.optimizedCost)}</span>
+                            <span className="text-[9px] font-bold text-black/40 whitespace-nowrap">{res.provider === 'local cache' ? 'local cache · no API call' : res.optimizedCost === null ? 'API cost n/a' : `API est. ${formatCost(res.optimizedCost)}`}</span>
                           </div>
                         </div>
                       </div>

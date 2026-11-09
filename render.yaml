@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: optiprompt
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/healthz
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_API_KEY_2
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: API_RATE_LIMIT_PER_MIN
+        value: "10"

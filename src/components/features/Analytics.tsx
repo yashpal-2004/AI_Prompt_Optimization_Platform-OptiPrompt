@@ -6,12 +6,6 @@ import { cn } from '../../lib/utils';
 import { useCurrency } from '../../lib/CurrencyContext';
 
 interface AnalyticsProps {
-  stats: {
-    totalSpent: number;
-    tokensUsed: number;
-    requests: number;
-    costSaved: number;
-  };
   history: {
     id: string;
     uid: string;
@@ -20,8 +14,11 @@ interface AnalyticsProps {
     originalTokens: number;
     optimizedTokens: number;
     tokensSaved: number;
-    optimizedCost: number;
-    costSaved: number;
+    apiInputTokens?: number;
+    apiOutputTokens?: number;
+    estimatedApiCostUsd?: number;
+    latencyMs?: number;
+    provider?: string;
     mode: string;
     model: string;
     timestamp: string;
@@ -29,7 +26,7 @@ interface AnalyticsProps {
   view?: 'charts' | 'ledger';
 }
 
-export function Analytics({ stats, history, view = 'charts' }: AnalyticsProps) {
+export function Analytics({ history, view = 'charts' }: AnalyticsProps) {
   const { formatCost } = useCurrency();
   const [currentPage, setCurrentPage] = React.useState(1);
   const itemsPerPage = 10;
@@ -44,7 +41,7 @@ export function Analytics({ stats, history, view = 'charts' }: AnalyticsProps) {
         fullDate: d.toISOString().split('T')[0],
         usage: 0,
         tokensSaved: 0,
-        modeSuccess: { cheap: 0, quality: 0, extreme: 0 }
+        apiTokens: 0
       };
     });
 
@@ -53,13 +50,9 @@ export function Analytics({ stats, history, view = 'charts' }: AnalyticsProps) {
       const date = item.timestamp.split('T')[0];
       const dayData = last7Days.find(d => d.fullDate === date);
       if (dayData) {
-        dayData.usage += (item.optimizedTokens || 0);
-        
-        // --- Complete Fix: Mode-Aware Efficiency ---
-        // For Quality mode, expansion is expected, so we don't count it as 'negative saving'
-        // For Cheap/Extreme, we only count positive savings
-        const saving = (item.tokensSaved || 0);
-        dayData.tokensSaved += Math.max(0, saving);
+        dayData.usage += (item.apiInputTokens || 0) + (item.apiOutputTokens || 0);
+        dayData.apiTokens = dayData.usage;
+        dayData.tokensSaved += item.tokensSaved || 0;
       }
     });
 
@@ -74,13 +67,7 @@ export function Analytics({ stats, history, view = 'charts' }: AnalyticsProps) {
         const totalOriginal = history.reduce((acc, item) => acc + (item.originalTokens || 0), 0);
         if (totalOriginal === 0) return 0;
         
-        const totalSaved = history.reduce((acc, item) => {
-          const saving = item.tokensSaved || 0;
-          if (item.mode === 'quality' && saving <= 0) {
-            return acc + (item.originalTokens * 0.15); 
-          }
-          return acc + Math.max(0, saving);
-        }, 0);
+        const totalSaved = history.reduce((acc, item) => acc + (item.tokensSaved || 0), 0);
         
         return Math.round((totalSaved / totalOriginal) * 100);
       })()
@@ -105,15 +92,15 @@ export function Analytics({ stats, history, view = 'charts' }: AnalyticsProps) {
                   <TrendingUp className="w-3 h-3" />
                   Neural Diagnostics
                 </div>
-                <h3 className="text-5xl font-medium text-slate-900 font-display tracking-tight leading-none mb-4">System Yield</h3>
-                <p className="text-base font-medium text-slate-500 leading-relaxed max-w-xl">Real-time health telemetry measuring successfully compressed or refined logic across all modes.</p>
+                <h3 className="text-5xl font-medium text-slate-900 font-display tracking-tight leading-none mb-4">Usage & Prompt Size</h3>
+                <p className="text-base font-medium text-slate-500 leading-relaxed max-w-xl">Provider token counts and latency come from API responses. Prompt-size change is a rough character-based estimate, not a tokenizer measurement.</p>
               </div>
 
               <div className="grid grid-cols-3 gap-6 shrink-0">
                 {[
-                  { label: 'Efficiency', value: `${avgCompression}%`, icon: Target, color: 'text-red', bg: 'bg-red-light' },
-                  { label: 'Avg Latency', value: history.length > 0 ? `${(history.reduce((acc, h) => acc + (h.latency || 0), 0) / history.length).toFixed(1)}s` : '0s', icon: Clock, color: 'text-red', bg: 'bg-red-light' },
-                  { label: 'Peak Capacity', value: history.length > 0 ? `${Math.max(0, ...history.map(h => {
+                  { label: 'Approx. prompt change', value: `~${avgCompression}%`, icon: Target, color: 'text-red', bg: 'bg-red-light' },
+                  { label: 'Avg Latency', value: history.length > 0 ? `${(history.reduce((acc, h) => acc + (h.latencyMs || 0), 0) / history.length / 1000).toFixed(2)}s` : '0s', icon: Clock, color: 'text-red', bg: 'bg-red-light' },
+                  { label: 'Best approx. reduction', value: history.length > 0 ? `${Math.max(-100, ...history.map(h => {
                     const original = h.originalTokens || 0;
                     const optimized = h.optimizedTokens || 0;
                     return original > 0 ? Math.round(((original - optimized) / original) * 100) : 0;
@@ -137,18 +124,18 @@ export function Analytics({ stats, history, view = 'charts' }: AnalyticsProps) {
               <div className="flex items-center justify-between mb-10">
                  <div className="flex items-center gap-3">
                     <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[3px]">Daily Yield Curve</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[3px]">Daily usage and estimated prompt-size change</p>
                  </div>
                   <div className="flex items-center gap-6 p-4 bg-black text-white">
-                  <div className="flex items-center gap-2 px-3">
-                    <div className="w-2.5 h-2.5 bg-indigo-500 rounded-full" />
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Usage</span>
+                    <div className="flex items-center gap-2 px-3">
+                      <div className="w-2.5 h-2.5 bg-indigo-500 rounded-full" />
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Provider tokens (actual)</span>
+                    </div>
+                    <div className="flex items-center gap-2 px-3 border-l border-slate-200">
+                      <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full" />
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Prompt tokens changed (approx.)</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 px-3 border-l border-slate-200">
-                    <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full" />
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Savings</span>
-                  </div>
-                </div>
               </div>
 
               <div className="h-[400px] w-full">
@@ -224,11 +211,11 @@ export function Analytics({ stats, history, view = 'charts' }: AnalyticsProps) {
             <thead>
               <tr className="bg-black text-white border-none">
                 <th className="px-10 py-6 text-[10px] font-black uppercase tracking-[2px]">Date & Time</th>
-                <th className="px-10 py-6 text-[10px] font-black uppercase tracking-[2px]">Vector mode</th>
-                <th className="px-10 py-6 text-[10px] font-black uppercase tracking-[2px]">Ingest</th>
-                <th className="px-10 py-6 text-[10px] font-black uppercase tracking-[2px]">Refined</th>
-                <th className="px-10 py-6 text-[10px] font-black uppercase tracking-[2px]">Yield</th>
-                <th className="px-10 py-6 text-[10px] font-black uppercase tracking-[2px]">Status</th>
+                <th className="px-10 py-6 text-[10px] font-black uppercase tracking-[2px]">Mode</th>
+                <th className="px-10 py-6 text-[10px] font-black uppercase tracking-[2px]">Provider / model</th>
+                <th className="px-10 py-6 text-[10px] font-black uppercase tracking-[2px]">Prompt tokens (approx.)</th>
+                <th className="px-10 py-6 text-[10px] font-black uppercase tracking-[2px]">Change (approx.)</th>
+                <th className="px-10 py-6 text-[10px] font-black uppercase tracking-[2px]">API tokens / cost est.</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -248,8 +235,8 @@ export function Analytics({ stats, history, view = 'charts' }: AnalyticsProps) {
                       {log.mode}
                     </span>
                   </td>
-                  <td className="px-10 py-6 text-xs font-black text-slate-400 font-mono tracking-tighter">{log.originalTokens} TK</td>
-                  <td className="px-10 py-6 text-xs font-black text-slate-900 font-mono tracking-tighter">{log.optimizedTokens} TK</td>
+                  <td className="px-10 py-6 text-xs font-bold text-slate-700">{log.provider || 'legacy'} · {log.model}</td>
+                  <td className="px-10 py-6 text-xs font-black text-slate-700 font-mono tracking-tighter">~{log.originalTokens} → ~{log.optimizedTokens}</td>
                   <td className="px-10 py-5">
                     {(() => {
                       const yieldVal = log.originalTokens > 0 ? Math.round((log.tokensSaved / log.originalTokens) * 100) : 0;
@@ -267,7 +254,7 @@ export function Analytics({ stats, history, view = 'charts' }: AnalyticsProps) {
                   <td className="px-10 py-6">
                     <div className="flex items-center gap-2 text-[10px] font-black text-slate-600 uppercase tracking-widest">
                       <div className="w-2 h-2 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
-                      Verified
+                      <span>{(log.apiInputTokens ?? 0) + (log.apiOutputTokens ?? 0)} tokens · {log.estimatedApiCostUsd == null ? 'cost n/a' : formatCost(log.estimatedApiCostUsd)}</span>
                     </div>
                   </td>
                 </tr>

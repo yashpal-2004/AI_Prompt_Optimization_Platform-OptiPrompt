@@ -174,7 +174,10 @@ export function runTemplateFormatter(
 ): { formatted: string; type: PromptType } {
   const type = detectPromptType(text);
   const hint = templateFormatHint(type, mode);
-  return { formatted: text + hint, type };
+  const alreadyConstrained =
+    /\b\d+\s*(sentences?|words?|bullets?|points?|paragraphs?|lines?)\b/i.test(text) ||
+    /\b(concisely|minimal(ly)?|brief(ly)?|short)\b/i.test(text);
+  return { formatted: alreadyConstrained ? text : text + hint, type };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

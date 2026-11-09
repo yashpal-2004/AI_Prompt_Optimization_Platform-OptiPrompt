@@ -73,11 +73,11 @@ export function PrivacyPolicy() {
               <ul className="space-y-4">
                 <li className="flex items-start gap-3">
                   <div className="w-1.5 h-1.5 bg-red mt-1.5" />
-                  <p><strong className="text-black uppercase text-xs">Prompt Vectors:</strong> We process prompts for optimization in real-time. We do not store your raw neural instructions permanently unless explicitly saved.</p>
+                  <p><strong className="text-black uppercase text-xs">Prompts:</strong> Prompts are sent to the selected AI provider for optimization. Prompt history is off by default. If you opt in under Settings, original and optimized prompts are stored in your account-scoped Firestore history until you clear it.</p>
                 </li>
                 <li className="flex items-start gap-3">
                   <div className="w-1.5 h-1.5 bg-red mt-1.5" />
-                  <p><strong className="text-black uppercase text-xs">Usage Telemetry:</strong> We track token consumption and efficiency metrics to provide historical analytics.</p>
+                  <p><strong className="text-black uppercase text-xs">Usage Telemetry:</strong> Provider-reported input and output tokens, request latency, provider/model, and estimated API cost are saved with history only when you opt in. Cost uses published standard rates and may differ from your provider bill or free-tier usage.</p>
                 </li>
                 <li className="flex items-start gap-3">
                   <div className="w-1.5 h-1.5 bg-red mt-1.5" />

@@ -21,7 +21,6 @@ import { Analytics } from '../features/Analytics';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../lib/AuthContext';
 import { useCurrency } from '../../lib/CurrencyContext';
-import { useKeys } from '../../lib/KeyContext';
 import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, getDocs, writeBatch } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { toast } from 'sonner';
@@ -35,8 +34,11 @@ interface UsageLog {
   originalTokens: number;
   optimizedTokens: number;
   tokensSaved: number;
-  optimizedCost: number;
-  costSaved: number;
+  apiInputTokens?: number;
+  apiOutputTokens?: number;
+  estimatedApiCostUsd?: number;
+  latencyMs?: number;
+  provider?: string;
   mode: string;
   model: string;
   timestamp: string;
@@ -45,7 +47,6 @@ interface UsageLog {
 export function Dashboard() {
   const { user, logout } = useAuth();
   const { formatCost } = useCurrency();
-  const { keys } = useKeys();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = React.useState<'playground' | 'analytics' | 'history'>('playground');
   const [history, setHistory] = React.useState<UsageLog[]>([]);
@@ -75,14 +76,13 @@ export function Dashboard() {
     return () => unsubscribe();
   }, [user]);
 
-  const sessionStats = React.useMemo(() => {
-    return history.reduce((acc, log) => ({
-      totalSpent: acc.totalSpent + (log.optimizedCost || 0),
-      tokensUsed: acc.tokensUsed + (log.optimizedTokens || 0),
-      requests: acc.requests + 1,
-      costSaved: acc.costSaved + (log.costSaved || 0)
-    }), { totalSpent: 0, tokensUsed: 0, requests: 0, costSaved: 0 });
-  }, [history]);
+  const sessionStats = React.useMemo(() => history.reduce((acc, log) => ({
+    totalSpent: acc.totalSpent + (log.estimatedApiCostUsd ?? 0),
+    tokensUsed: acc.tokensUsed + (log.apiInputTokens ?? 0) + (log.apiOutputTokens ?? 0),
+    requests: acc.requests + 1,
+    estimatedPromptTokensSaved: acc.estimatedPromptTokensSaved + (log.tokensSaved || 0),
+    estimatedPromptTokensBefore: acc.estimatedPromptTokensBefore + (log.originalTokens || 0),
+  }), { totalSpent: 0, tokensUsed: 0, requests: 0, estimatedPromptTokensSaved: 0, estimatedPromptTokensBefore: 0 }), [history]);
 
   const resetStats = async () => {
     if (!user) return;
@@ -100,31 +100,35 @@ export function Dashboard() {
   };
 
   const handleOptimize = async (data: any) => {
-    if (!user) return;
+    if (!user || localStorage.getItem(`optiprompt_history_${user.uid}`) !== 'true') return;
     try {
-      await addDoc(collection(db, 'usageLogs'), {
+      const log: Record<string, unknown> = {
         uid: user.uid,
         originalPrompt: data.originalPrompt,
         optimizedPrompt: data.optimizedPrompt,
-        originalTokens: data.originalTokens || 0,
-        optimizedTokens: data.optimizedTokens || 0,
-        tokensSaved: data.tokensSaved || 0,
-        optimizedCost: data.optimizedCost || 0,
-        costSaved: data.costSaved || 0,
+        originalTokens: data.originalTokens,
+        optimizedTokens: data.optimizedTokens,
+        tokensSaved: data.tokensSaved,
         mode: data.mode,
+        provider: data.provider,
         model: data.model,
-        timestamp: serverTimestamp()
-      });
+        latencyMs: data.latencyMs,
+        timestamp: serverTimestamp(),
+      };
+      if (data.apiInputTokens !== null) log.apiInputTokens = data.apiInputTokens;
+      if (data.apiOutputTokens !== null) log.apiOutputTokens = data.apiOutputTokens;
+      if (data.optimizedCost !== null) log.estimatedApiCostUsd = data.optimizedCost;
+      await addDoc(collection(db, 'usageLogs'), log);
     } catch {
-      toast.error("Failed to save optimization to cloud");
+      toast.error('Failed to save optimization to cloud');
     }
   };
 
   const stats = [
-    { label: 'Total Saved', value: formatCost(sessionStats.costSaved), icon: Sparkles },
-    { label: 'API Spend', value: formatCost(sessionStats.totalSpent), icon: DollarSign },
+    { label: 'Approx. prompt tokens saved', value: sessionStats.estimatedPromptTokensSaved.toLocaleString(), icon: Sparkles },
+    { label: 'Est. provider cost', value: formatCost(sessionStats.totalSpent), icon: DollarSign },
     { label: 'Requests', value: sessionStats.requests.toLocaleString(), icon: Zap },
-    { label: 'Tokens', value: sessionStats.tokensUsed.toLocaleString(), icon: Activity },
+    { label: 'Provider tokens', value: sessionStats.tokensUsed.toLocaleString(), icon: Activity },
   ];
 
   return (
@@ -226,7 +230,7 @@ export function Dashboard() {
               <div className="works-header">
                 <h2>System <span className="text-red">Performance</span></h2>
               </div>
-              <Analytics stats={sessionStats} history={history} view="charts" />
+              <Analytics history={history} view="charts" />
             </motion.div>
           )}
 
@@ -240,7 +244,7 @@ export function Dashboard() {
               <div className="works-header">
                 <h2>Activity <span className="text-red">Ledger</span></h2>
               </div>
-              <Analytics stats={sessionStats} history={history} view="ledger" />
+              <Analytics history={history} view="ledger" />
             </motion.div>
           )}
         </AnimatePresence>

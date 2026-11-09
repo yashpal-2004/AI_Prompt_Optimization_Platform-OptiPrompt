@@ -12,8 +12,16 @@ export default defineConfig(({mode}) => {
   
   return {
     plugins: [react(), tailwindcss()],
-    define: {
-      'process.env.GROK_API_KEY': JSON.stringify(env.GROK_API_KEY || ""),
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage', 'firebase/analytics'],
+            motion: ['motion/react'],
+            charts: ['recharts'],
+          },
+        },
+      },
     },
     resolve: {
       alias: {

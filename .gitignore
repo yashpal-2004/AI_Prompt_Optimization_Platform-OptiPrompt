@@ -3,6 +3,19 @@ build/
 dist/
 coverage/
 .DS_Store
+Thumbs.db
 *.log
+npm-debug.log*
+*.tsbuildinfo
+*.local
 .env*
 !.env.example
+
+# Local credentials and Firebase emulator state
+*.pem
+*.key
+.firebase/
+firebase-export-*/
+
+# Generated AI benchmark reports
+benchmarks/results/

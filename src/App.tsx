@@ -3,21 +3,22 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Dashboard } from './components/layout/Dashboard';
-import { Landing } from './components/layout/Landing';
-import { Settings } from './components/features/Settings';
-import { Documentation } from './pages/docs/Documentation';
-import { ApiReference } from './pages/docs/ApiReference';
-import { PrivacyPolicy } from './pages/legal/PrivacyPolicy';
-import { SafetyGuides } from './pages/docs/SafetyGuides';
-import { TermsOfUse } from './pages/legal/TermsOfUse';
-import { Status } from './components/features/Status';
+import { lazy, Suspense } from 'react';
 import { AuthProvider, useAuth } from './lib/AuthContext';
 import { CurrencyProvider } from './lib/CurrencyContext';
-import { KeyProvider } from './lib/KeyContext';
 import { Toaster } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+
+const Dashboard = lazy(() => import('./components/layout/Dashboard').then(module => ({ default: module.Dashboard })));
+const Landing = lazy(() => import('./components/layout/Landing').then(module => ({ default: module.Landing })));
+const Settings = lazy(() => import('./components/features/Settings').then(module => ({ default: module.Settings })));
+const Documentation = lazy(() => import('./pages/docs/Documentation').then(module => ({ default: module.Documentation })));
+const ApiReference = lazy(() => import('./pages/docs/ApiReference').then(module => ({ default: module.ApiReference })));
+const PrivacyPolicy = lazy(() => import('./pages/legal/PrivacyPolicy').then(module => ({ default: module.PrivacyPolicy })));
+const SafetyGuides = lazy(() => import('./pages/docs/SafetyGuides').then(module => ({ default: module.SafetyGuides })));
+const TermsOfUse = lazy(() => import('./pages/legal/TermsOfUse').then(module => ({ default: module.TermsOfUse })));
+const Status = lazy(() => import('./components/features/Status').then(module => ({ default: module.Status })));
 
 
 function AppContent() {
@@ -55,6 +56,7 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-[#f3f2ee] selection:bg-red-light overflow-x-hidden">
       <div className="grid-bg-overlay" />
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-xs font-bold uppercase tracking-[3px] text-black/50">Loading OptiPrompt…</div>}>
       <AnimatePresence mode="wait">
         <Routes>
           <Route 
@@ -95,6 +97,7 @@ function AppContent() {
           />
         </Routes>
       </AnimatePresence>
+      </Suspense>
       <Toaster position="top-right" richColors />
     </div>
 
@@ -106,9 +109,7 @@ export default function App() {
     <Router>
       <AuthProvider>
         <CurrencyProvider>
-          <KeyProvider>
-            <AppContent />
-          </KeyProvider>
+          <AppContent />
         </CurrencyProvider>
       </AuthProvider>
     </Router>

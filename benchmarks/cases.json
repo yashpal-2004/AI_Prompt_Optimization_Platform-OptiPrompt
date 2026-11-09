@@ -1,0 +1,524 @@
+[
+  {
+    "id": "case-01",
+    "category": "code",
+    "prompt": "Implement a TypeScript function to validate JWT expiry using jose. Preserve the RS256 algorithm requirement and reject tokens with missing exp claims. Add unit tests.",
+    "mustPreserve": [
+      "TypeScript",
+      "JWT",
+      "jose",
+      "RS256",
+      "exp"
+    ]
+  },
+  {
+    "id": "case-02",
+    "category": "code",
+    "prompt": "Design a REST API endpoint for cursor-based pagination in PostgreSQL. Use created_at plus id as a stable cursor and return nextCursor.",
+    "mustPreserve": [
+      "REST API",
+      "PostgreSQL",
+      "created_at",
+      "nextCursor"
+    ]
+  },
+  {
+    "id": "case-03",
+    "category": "code",
+    "prompt": "Write a React hook that debounces search input by 300 ms and cancels the prior timer on unmount. Use TypeScript and test with fake timers.",
+    "mustPreserve": [
+      "React",
+      "300 ms",
+      "TypeScript",
+      "fake timers"
+    ]
+  },
+  {
+    "id": "case-04",
+    "category": "code",
+    "prompt": "Create a Python async worker that retries HTTP 429 responses with exponential backoff, honors Retry-After, and stops after 5 attempts.",
+    "mustPreserve": [
+      "Python",
+      "HTTP 429",
+      "Retry-After",
+      "5 attempts"
+    ]
+  },
+  {
+    "id": "case-05",
+    "category": "code",
+    "prompt": "Refactor this Node.js file upload route to stream files to S3 and reject files larger than 10 MB. Keep the existing multipart field name attachment.",
+    "mustPreserve": [
+      "Node.js",
+      "S3",
+      "10 MB",
+      "attachment"
+    ]
+  },
+  {
+    "id": "case-06",
+    "category": "code",
+    "prompt": "Write SQL to find duplicate emails in users, case-insensitively, without deleting rows. Include the number of duplicates per normalized email.",
+    "mustPreserve": [
+      "SQL",
+      "users",
+      "email"
+    ]
+  },
+  {
+    "id": "case-07",
+    "category": "code",
+    "prompt": "Implement a Go middleware that validates an HMAC-SHA256 webhook signature from X-Signature and rejects requests older than 5 minutes.",
+    "mustPreserve": [
+      "Go",
+      "HMAC-SHA256",
+      "X-Signature",
+      "5 minutes"
+    ]
+  },
+  {
+    "id": "case-08",
+    "category": "code",
+    "prompt": "Build a Vue 3 form with accessible inline validation for an email and a password of at least 12 characters. Preserve keyboard navigation.",
+    "mustPreserve": [
+      "Vue 3",
+      "email",
+      "12 characters",
+      "keyboard"
+    ]
+  },
+  {
+    "id": "case-09",
+    "category": "code",
+    "prompt": "Explain a safe database migration from nullable to non-null on orders.account_id for a table with 50 million rows, using expand-and-contract.",
+    "mustPreserve": [
+      "orders.account_id",
+      "50 million",
+      "expand-and-contract"
+    ]
+  },
+  {
+    "id": "case-10",
+    "category": "code",
+    "prompt": "Create a Docker healthcheck that calls /healthz every 30 seconds with a 3 second timeout and 3 retries.",
+    "mustPreserve": [
+      "Docker",
+      "/healthz",
+      "30 seconds",
+      "3 second",
+      "3 retries"
+    ]
+  },
+  {
+    "id": "case-11",
+    "category": "summary",
+    "prompt": "Summarize the incident report in 4 bullets. Preserve the 14:32 UTC start time, 23 minute duration, and the fact that rollback restored service.",
+    "mustPreserve": [
+      "4 bullets",
+      "14:32 UTC",
+      "23 minute",
+      "rollback"
+    ]
+  },
+  {
+    "id": "case-12",
+    "category": "summary",
+    "prompt": "Turn these meeting notes into decisions and action items. Keep the owner Priya, due date 2026-12-04, and the $18,500 budget.",
+    "mustPreserve": [
+      "Priya",
+      "2026-12-04",
+      "$18,500"
+    ]
+  },
+  {
+    "id": "case-13",
+    "category": "summary",
+    "prompt": "Summarize this research abstract for a nontechnical audience in under 120 words. Retain the sample size of 1,248 and the 95% confidence interval.",
+    "mustPreserve": [
+      "under 120 words",
+      "1,248",
+      "95% confidence interval"
+    ]
+  },
+  {
+    "id": "case-14",
+    "category": "summary",
+    "prompt": "Extract the risks from this project update and rank them by severity. Keep the P0 outage risk and the 2-week mitigation deadline.",
+    "mustPreserve": [
+      "P0",
+      "2-week"
+    ]
+  },
+  {
+    "id": "case-15",
+    "category": "summary",
+    "prompt": "Summarize the customer feedback into themes. Include the 37 responses and distinguish feature requests from bugs.",
+    "mustPreserve": [
+      "37 responses",
+      "feature requests",
+      "bugs"
+    ]
+  },
+  {
+    "id": "case-16",
+    "category": "summary",
+    "prompt": "Create an executive summary of this quarterly update with revenue, churn, and hiring as separate sections. Do not change any numbers.",
+    "mustPreserve": [
+      "revenue",
+      "churn",
+      "hiring"
+    ]
+  },
+  {
+    "id": "case-17",
+    "category": "summary",
+    "prompt": "Condense these release notes to 5 bullets. Preserve API v2.4 compatibility, the 2026-10-15 release date, and known issue OP-481.",
+    "mustPreserve": [
+      "5 bullets",
+      "API v2.4",
+      "2026-10-15",
+      "OP-481"
+    ]
+  },
+  {
+    "id": "case-18",
+    "category": "summary",
+    "prompt": "Summarize the contract clause without giving legal advice. Preserve the 30-day notice period and the exception for force majeure.",
+    "mustPreserve": [
+      "30-day notice",
+      "force majeure"
+    ]
+  },
+  {
+    "id": "case-19",
+    "category": "summary",
+    "prompt": "Convert this transcript into a timeline. Keep the three milestones: prototype on May 8, beta on June 12, launch on July 1.",
+    "mustPreserve": [
+      "May 8",
+      "June 12",
+      "July 1"
+    ]
+  },
+  {
+    "id": "case-20",
+    "category": "summary",
+    "prompt": "Summarize the experiment results and separate correlation from causation. Include n=240 and p=0.03.",
+    "mustPreserve": [
+      "n=240",
+      "p=0.03",
+      "correlation",
+      "causation"
+    ]
+  },
+  {
+    "id": "case-21",
+    "category": "writing",
+    "prompt": "Draft a polite follow-up email to a recruiter after a software internship interview. Keep it under 130 words and mention the backend role.",
+    "mustPreserve": [
+      "under 130 words",
+      "backend role"
+    ]
+  },
+  {
+    "id": "case-22",
+    "category": "writing",
+    "prompt": "Rewrite this product announcement in a warm, clear tone for existing customers. Keep the launch date March 3 and do not promise a discount.",
+    "mustPreserve": [
+      "March 3",
+      "discount"
+    ]
+  },
+  {
+    "id": "case-23",
+    "category": "writing",
+    "prompt": "Write a concise outage notice that states the service is degraded, updates will come every 30 minutes, and no data loss is known.",
+    "mustPreserve": [
+      "degraded",
+      "30 minutes",
+      "no data loss"
+    ]
+  },
+  {
+    "id": "case-24",
+    "category": "writing",
+    "prompt": "Draft a project proposal intro for a campus accessibility audit. Include screen readers, keyboard-only navigation, and WCAG 2.2 AA.",
+    "mustPreserve": [
+      "screen readers",
+      "keyboard-only navigation",
+      "WCAG 2.2 AA"
+    ]
+  },
+  {
+    "id": "case-25",
+    "category": "writing",
+    "prompt": "Turn this rough feedback into constructive peer review. Keep the example about the checkout flow and suggest one actionable next step.",
+    "mustPreserve": [
+      "checkout flow",
+      "actionable"
+    ]
+  },
+  {
+    "id": "case-26",
+    "category": "writing",
+    "prompt": "Write a 90-second demo script introducing a prompt optimization app. Explain the before/after view and show one failure-safe fallback.",
+    "mustPreserve": [
+      "90-second",
+      "before/after",
+      "fallback"
+    ]
+  },
+  {
+    "id": "case-27",
+    "category": "writing",
+    "prompt": "Create a professional response declining a meeting this week while offering Tuesday at 10:00 AM or Thursday at 2:00 PM IST.",
+    "mustPreserve": [
+      "Tuesday at 10:00 AM",
+      "Thursday at 2:00 PM IST"
+    ]
+  },
+  {
+    "id": "case-28",
+    "category": "writing",
+    "prompt": "Write a concise privacy notice explaining that prompt history is off by default and saved prompts can be deleted from account history.",
+    "mustPreserve": [
+      "off by default",
+      "deleted"
+    ]
+  },
+  {
+    "id": "case-29",
+    "category": "writing",
+    "prompt": "Create a customer support reply for a failed payment. Do not claim the payment succeeded; include invoice INV-2048 and a retry link placeholder.",
+    "mustPreserve": [
+      "INV-2048",
+      "retry link"
+    ]
+  },
+  {
+    "id": "case-30",
+    "category": "writing",
+    "prompt": "Rewrite this internship project description for a resume in one bullet, using only verified implementation details and no invented metrics.",
+    "mustPreserve": [
+      "one bullet",
+      "no invented metrics"
+    ]
+  },
+  {
+    "id": "case-31",
+    "category": "analysis",
+    "prompt": "Given monthly active users [1200, 1350, 1290, 1510], calculate month-over-month percentage changes and explain the dip in month 3 without inventing a cause.",
+    "mustPreserve": [
+      "1200",
+      "1350",
+      "1290",
+      "1510",
+      "month 3"
+    ]
+  },
+  {
+    "id": "case-32",
+    "category": "analysis",
+    "prompt": "Compare conversion rates for control 4.2% (n=5000) and variant 4.6% (n=4980). State that statistical significance requires a test; do not infer causality.",
+    "mustPreserve": [
+      "4.2%",
+      "n=5000",
+      "4.6%",
+      "n=4980",
+      "statistical significance"
+    ]
+  },
+  {
+    "id": "case-33",
+    "category": "analysis",
+    "prompt": "Analyze a CSV with columns ts, region, revenue_usd. Propose SQL for daily revenue by region for 2026-01-01 through 2026-01-31, UTC.",
+    "mustPreserve": [
+      "ts",
+      "region",
+      "revenue_usd",
+      "2026-01-01",
+      "2026-01-31",
+      "UTC"
+    ]
+  },
+  {
+    "id": "case-34",
+    "category": "analysis",
+    "prompt": "Explain precision, recall, and F1 for an imbalanced fraud dataset with 1% positives. Include why accuracy alone can mislead.",
+    "mustPreserve": [
+      "precision",
+      "recall",
+      "F1",
+      "1%"
+    ]
+  },
+  {
+    "id": "case-35",
+    "category": "analysis",
+    "prompt": "Estimate p95 latency from these measured samples only: 110, 130, 180, 200, 900 ms. State the sample is too small for production conclusions.",
+    "mustPreserve": [
+      "110",
+      "130",
+      "180",
+      "200",
+      "900 ms",
+      "too small"
+    ]
+  },
+  {
+    "id": "case-36",
+    "category": "analysis",
+    "prompt": "Review a retention table: cohort A 42% at day 7, cohort B 47% at day 7. Identify the 5 percentage-point difference and avoid claiming statistical significance.",
+    "mustPreserve": [
+      "42%",
+      "47%",
+      "5 percentage-point",
+      "statistical significance"
+    ]
+  },
+  {
+    "id": "case-37",
+    "category": "analysis",
+    "prompt": "Calculate the weighted average from groups: 8 users at score 4.5 and 2 users at score 3.0. Show the formula and final value.",
+    "mustPreserve": [
+      "8 users",
+      "4.5",
+      "2 users",
+      "3.0"
+    ]
+  },
+  {
+    "id": "case-38",
+    "category": "analysis",
+    "prompt": "Describe how to detect seasonality in 24 months of daily sales. Mention STL decomposition and keep validation data chronologically later than training data.",
+    "mustPreserve": [
+      "24 months",
+      "STL decomposition",
+      "chronologically"
+    ]
+  },
+  {
+    "id": "case-39",
+    "category": "analysis",
+    "prompt": "Explain the difference between median and mean for response times [100, 105, 110, 115, 900] ms and identify the outlier effect.",
+    "mustPreserve": [
+      "100",
+      "105",
+      "110",
+      "115",
+      "900",
+      "median",
+      "mean"
+    ]
+  },
+  {
+    "id": "case-40",
+    "category": "analysis",
+    "prompt": "Design an A/B test for signup completion with baseline 32%, minimum detectable effect 3 percentage points, alpha 0.05, and power 80%.",
+    "mustPreserve": [
+      "32%",
+      "3 percentage points",
+      "0.05",
+      "80%"
+    ]
+  },
+  {
+    "id": "case-41",
+    "category": "reasoning",
+    "prompt": "A service has 3 replicas and each serves 40 requests/second. One replica fails. Calculate remaining capacity and state assumptions about load balancing.",
+    "mustPreserve": [
+      "3 replicas",
+      "40 requests/second",
+      "load balancing"
+    ]
+  },
+  {
+    "id": "case-42",
+    "category": "reasoning",
+    "prompt": "Explain why retrying a non-idempotent payment POST can create duplicate charges. Propose an idempotency key and preserve the 24-hour retention requirement.",
+    "mustPreserve": [
+      "payment POST",
+      "idempotency key",
+      "24-hour"
+    ]
+  },
+  {
+    "id": "case-43",
+    "category": "reasoning",
+    "prompt": "Compare optimistic and pessimistic locking for inventory updates when two buyers request the last item. Include a unique constraint as a safeguard.",
+    "mustPreserve": [
+      "last item",
+      "unique constraint"
+    ]
+  },
+  {
+    "id": "case-44",
+    "category": "reasoning",
+    "prompt": "Explain a cache stampede and propose request coalescing plus a 60-second TTL with jitter.",
+    "mustPreserve": [
+      "cache stampede",
+      "request coalescing",
+      "60-second TTL",
+      "jitter"
+    ]
+  },
+  {
+    "id": "case-45",
+    "category": "reasoning",
+    "prompt": "Given a 99.9% monthly availability target over 30 days, calculate the approximate error budget in minutes and state the month-length assumption.",
+    "mustPreserve": [
+      "99.9%",
+      "30 days",
+      "minutes"
+    ]
+  },
+  {
+    "id": "case-46",
+    "category": "reasoning",
+    "prompt": "Describe how you would investigate a memory leak that grows by 20 MB/hour after each deploy. Include heap snapshots and a rollback threshold of 500 MB.",
+    "mustPreserve": [
+      "20 MB/hour",
+      "heap snapshots",
+      "500 MB"
+    ]
+  },
+  {
+    "id": "case-47",
+    "category": "reasoning",
+    "prompt": "A queue receives 120 jobs/minute and processes 100 jobs/minute. Explain backlog growth over 15 minutes, assuming rates stay constant.",
+    "mustPreserve": [
+      "120 jobs/minute",
+      "100 jobs/minute",
+      "15 minutes"
+    ]
+  },
+  {
+    "id": "case-48",
+    "category": "reasoning",
+    "prompt": "Explain the tradeoff between eventual consistency and strong consistency for a shopping cart. Preserve the requirement that checkout revalidates stock.",
+    "mustPreserve": [
+      "eventual consistency",
+      "strong consistency",
+      "checkout revalidates stock"
+    ]
+  },
+  {
+    "id": "case-49",
+    "category": "reasoning",
+    "prompt": "Propose a rollback plan for a database migration with a 10-minute maintenance window and a 2-minute health-check gate.",
+    "mustPreserve": [
+      "10-minute",
+      "2-minute",
+      "health-check"
+    ]
+  },
+  {
+    "id": "case-50",
+    "category": "reasoning",
+    "prompt": "Explain how to handle a third-party API outage with a 5-second timeout, 2 retries, and a circuit breaker that opens after 10 failures.",
+    "mustPreserve": [
+      "5-second",
+      "2 retries",
+      "10 failures"
+    ]
+  }
+]
