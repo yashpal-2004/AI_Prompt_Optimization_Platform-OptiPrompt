@@ -1,7 +1,7 @@
 import express, { NextFunction, Request, Response } from 'express';
-import firebaseConfig from '../firebase-applet-config.json';
-import { verifyFirebaseIdToken } from './firebaseAuth';
-import { optimizeWithProviders, OptimizationMode } from './providers';
+import firebaseConfig from '../firebase-applet-config.json' with { type: 'json' };
+import { verifyFirebaseIdToken } from './firebaseAuth.js';
+import { optimizeWithProviders, OptimizationMode } from './providers.js';
 
 interface AuthenticatedRequest extends Request {
   authUid?: string;
